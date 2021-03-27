@@ -37,4 +37,34 @@ def RMSE(prediction, truth):
   return s/len(not_nans)
 
 # %%
+from sklearn.decomposition import NMF
+def nmf(matrix, r):
+  model = NMF(n_components=r, init='random', random_state=0)
+  W = model.fit_transform(matrix)
+  H = model.components_
+  Z_approximated = np.dot(W,H)
+  return Z_approximated
+#%%
+def fill_zeros(matrix):
+  return np.nan_to_num(matrix, nan = 0.0)
+
+def fill_mean_global(matrix):
+  m = np.nanmean(matrix)
+  return np.nan_to_num(matrix, nan = m)
+
+def fill_mean_movies(matrix):
+  col_mean = np.nanmean(matrix, axis = 0)
+  col_mean = np.nan_to_num(col_mean, nan = 0.0)
+  inds = np.where(np.isnan(matrix))
+  matrix_copy = matrix.copy()
+  matrix_copy[inds] = np.take(col_mean, inds[1])
+  return matrix_copy
+
+def fill_mean_users(matrix):
+  row_mean = np.nanmean(matrix, axis = 1)
+  row_mean = np.nan_to_num(row_mean, nan = 0.0)
+  inds = np.where(np.isnan(matrix))
+  matrix_copy = matrix.copy()
+  matrix_copy[inds] = np.take(row_mean, inds[0])
+  return matrix_copy
 # %%
