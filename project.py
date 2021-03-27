@@ -71,6 +71,6 @@ def fill_mean_users(matrix):
 # Experiment 1
 filled_ratings = fill_mean_users(train_ratings)
 approximation = nmf(filled_ratings, 6, max_iter = 1000)
-print(RMSE(approximation))
+print(RMSE(approximation), test_ratings)
 
 # %%
