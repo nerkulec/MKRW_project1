@@ -38,8 +38,8 @@ def RMSE(prediction, truth):
 
 # %%
 from sklearn.decomposition import NMF
-def nmf(matrix, r):
-  model = NMF(n_components=r, init='random', random_state=0)
+def nmf(matrix, r, max_iter=1000):
+  model = NMF(n_components=r, init='random', random_state=0, max_iter=max_iter)
   W = model.fit_transform(matrix)
   H = model.components_
   Z_approximated = np.dot(W,H)
@@ -67,4 +67,10 @@ def fill_mean_users(matrix):
   matrix_copy = matrix.copy()
   matrix_copy[inds] = np.take(row_mean, inds[0])
   return matrix_copy
+# %%
+# Experiment 1
+filled_ratings = fill_mean_users(train_ratings)
+approximation = nmf(filled_ratings, 6, max_iter = 1000)
+print(RMSE(approximation))
+
 # %%
