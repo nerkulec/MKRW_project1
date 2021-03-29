@@ -1,9 +1,27 @@
 # %%
 import numpy as np
 import pandas as pd
+
 # %%
-train = pd.read_csv('train_ratings.csv')
-test = pd.read_csv('test_ratings.csv')
+import argparse
+parser = argparse.ArgumentParser(
+    description='Recommender system using NMF, SVD or Stochastic Gradient Descent.')
+parser.add_argument(
+    '-tr', '--train', type=str, metavar='', 
+    required=True, help='Path to trainfile with movie ratings.')
+parser.add_argument(
+    '-ts', '--test', type=str, metavar='', 
+    required=True, help='Path to testfile with movie ratings.')
+parser.add_argument(
+    '-a', '--alg', type=str, metavar='', choices=['SVD1', 'SVD2', 'NMF', 'SGD'],
+    required=True, help='Chosen algorithm for Recommender system (NMF, SVD1, SVD2, SGD)')
+parser.add_argument(
+    '-r', '--result', type=str, metavar='', required=True, help='Path where root-mean square error (RMSE) is to be saved.')
+args = parser.parse_args()
+
+# %%
+train = pd.read_csv(filepath_or_buffer=args.train)
+test = pd.read_csv(filepath_or_buffer=args.test)
 
 users = set(train.userId)
 train_movies = set(train.movieId)
@@ -70,7 +88,16 @@ def fill_mean_users(matrix):
 # %%
 # Experiment 1
 filled_ratings = fill_mean_users(train_ratings)
-approximation = nmf(filled_ratings, 6, max_iter = 1000)
-print(RMSE(approximation), test_ratings)
+if args.alg == 'NMF':
+	approximation = nmf(filled_ratings, 6, max_iter = 1000)
+elif args.alg == 'SVD1':
+	pass
+elif args.alg == 'SVD2':
+	pass
+elif args.alg == 'SGD':
+	pass
 
-# %%
+rmse_val = RMSE(approximation, filled_ratings)
+print(rmse_val, type(rmse_val))
+with open(args.result, 'a') as f:
+    f.write(str(rmse_val))
