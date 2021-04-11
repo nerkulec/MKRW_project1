@@ -39,7 +39,7 @@ pip install numpy
 Data:
 Our data comes from https://grouplens.org/datasets/movielens/ and can be downloaded by clicking here [ml-latest-small.zip](https://grouplens.org/datasets/movielens/ml-latest-small.zip). The main interest of ours is the file 'ratings.cvs' which consists of around 100000 ratings done by around 600 users on around 9000 movies. Its format is as following:
 
-![alt text](https://github.com/nerkulec/MKRW_project1/blob/kuba/images/rating_data.png)
+![](https://github.com/nerkulec/MKRW_project1/blob/kuba/images/rating_data.png)
 
 whereas:
 
@@ -87,9 +87,13 @@ python3 split_train_test.py
 ```
 
 where:
+
 • `file_to_split` is a path to raw file with movie ratings.
+
 • `train_file_path` is a train_rating.csv file's savepath.
+
 • `test_file_path` is a test_rating.csv file's savepath.
+
 
 - Main program is program is to be called in the Computer's terminal (current directory: repository folder) as in the following example:
 
@@ -103,16 +107,20 @@ python3 recom_system_IndexNr1_IndexNr2.py
 ```
 
 where:
+
 • `train_file_path` is a path to file with the training data (train_ratings.csv)
+
 • `test_file_path` is a path to file with the test data (test_ratings.csv)
+
 • `ALG` is one of the algorithms NMF, SVD1, SVD1, SGD (note – uppercase)
+
 • `result_file_path` is a path to file where a final score will be saved (only this number will appear in this file)
+
 
 Final score is the metric of algorithm performance (Quality of the recommender system using selected algorithm in `ALG`). In our project the metric of performance is RMSE described below:
 
 Recall the original sparse matrix **_Z_** that can be approximated by algorithms `ALG` in a way described in section [Algorithms](#Algorithms). Approximation of ratings results in a new matrix: **_Z'_**, now the quality of those approximations will be computed with RMSE metric by comparing with sparse test matrix **_T_**, which is in a same format as original training matrix **_Z_** (many entries of **_T_** are not defined (either there is no such pair at all, or it is in the train set). This is due to the fact that not all users rated all movies). In other words **_Z_** comes from the file train_ratings.csv, whereas from the file test_ratings.csv we analogously create the matrix **_T_**.
 
-Now, let ![alt text](https://github.com/nerkulec/MKRW_project1/blob/kuba/images/tau.png)
-denote a set of user, movie pairs (u, m) - with ratings present in a test set – then the existing rating is given by **_T_**[u, m]. Assume that your algorithm after training on **_Z_** computes **_Z'_**, a matrix containing elements **_Z'_**[u, m] for (u, m) ∈ ![alt text](https://github.com/nerkulec/MKRW_project1/blob/kuba/images/tau.png). Then the quality is computed as root-mean square error:
+Now, let <img src="https://github.com/nerkulec/MKRW_project1/blob/kuba/images/tau.png" width="20" heigth="20"/> denote a set of user, movie pairs (u, m) - with ratings present in a test set – then the existing rating is given by **_T_**[u, m]. Assume that your algorithm after training on **_Z_** computes **_Z'_**, a matrix containing elements **_Z'_**[u, m] for (u, m) ∈ ![](https://github.com/nerkulec/MKRW_project1/blob/kuba/images/tau.png). Then the quality is computed as root-mean square error:
 
-![alt text](https://github.com/nerkulec/MKRW_project1/blob/kuba/images/rmse.png)
+![](https://github.com/nerkulec/MKRW_project1/blob/kuba/images/rmse.png)
