@@ -5,7 +5,7 @@
 ## Table of contents
 
 - [Introduction](#Introduction)
-- [Definition of the project's problem](#Definition-of-the-project's-problem)
+- [Definition of the project's problem](#Definition-of-the-project-problem)
 - [Technologies used](#Technologies-used)
 - [Data](#Data)
 - [Mathematics behind _algorithms_](#Algorithms)
@@ -16,7 +16,7 @@
 We live in times, quite dynamic ones, that brought us rapid, exponential development of new technologies in the broad area of Information Technology, especially Internet. It is impossible to not having heard of a friend or a colleague
 buying brand new product based on add-in recommendations they saw while scrolling through their commonly used newsfeed, which is a successful way of e-commerce ability to target us we such an accurate recommendations thanks to great Recommender Systems that are the main topic of this Project. In this project we aim to work on deciphering the magic behind many commonly used techniques in Recommender Systems that are in constant use by such companies like Amazon, Google, Netflix or any local business in your Area and end up using those algorithms on data to perform recommendations. Those recommender systems as it turns out, base on most important mathematical operations we may heard of as eigen-something during our algebra course. Project is divided into two parts which will be described more deeply/briefly in section [Algorithms](#Algorithms).
 
-## Definition of the project's problem:
+## Definition of the project problem:
 
 Given set of data consisting of movie ratings of many users, the task is to develop algorithms, train them on 90 per cent of data and perform recommendations (predictions of users' ratings per film) by suggested algorithms i.e NMF, SVD, collaborative SVD and SGD on the remaining 10 % of the data.
 
@@ -39,7 +39,7 @@ pip install numpy
 Data:
 Our data comes from https://grouplens.org/datasets/movielens/ and can be downloaded by clicking here [ml-latest-small.zip](https://grouplens.org/datasets/movielens/ml-latest-small.zip). The main interest of ours is the file 'ratings.cvs' which consists of around 100000 ratings done by around 600 users on around 9000 movies. Its format is as following:
 
-![alt text](https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png)
+![alt text](https://github.com/nerkulec/MKRW_project1/blob/kuba/images/rating_data.png)
 
 whereas:
 
@@ -110,9 +110,9 @@ where:
 
 Final score is the metric of algorithm performance (Quality of the recommender system using selected algorithm in `ALG`). In our project the metric of performance is RMSE described below:
 
-Recall the original sparse matrix **_Z_** that can be approximated by algorithms `ALG` in a way described in section [Algorithms](#Algorithms). Approximation of ratings results in a new matrix: **_Z'_**, now the quality of those approximations will be computed with RMSE metric by comparing with sparse test matrix **_T_**, which is in a same format as original training matrix **_Z_** (many entries of **_T_** are not defined (either there is no such pair at all, or it is in the train set). This is due to the fact that not all users rated all movies). In other words **_Z_** comes from the file train ratings.csv, whereas from the file test*ratings.csv we analogously create the matrix \*\*\_T*\*\*.
+Recall the original sparse matrix **_Z_** that can be approximated by algorithms `ALG` in a way described in section [Algorithms](#Algorithms). Approximation of ratings results in a new matrix: **_Z'_**, now the quality of those approximations will be computed with RMSE metric by comparing with sparse test matrix **_T_**, which is in a same format as original training matrix **_Z_** (many entries of **_T_** are not defined (either there is no such pair at all, or it is in the train set). This is due to the fact that not all users rated all movies). In other words **_Z_** comes from the file train_ratings.csv, whereas from the file test_ratings.csv we analogously create the matrix **_T_**.
 
-Now, let ![alt text]()
-denote a set of user, movie pairs (u, m) - with ratings present in a test set – then the existing rating is given by **_T_**[u, m]. Assume that your algorithm after training on **_Z_** computes **_Z'_**, a matrix containing elements **_Z'_**[u, m] for (u, m) ∈ ![alt text]() . Then the quality is computed as root-mean square error:
+Now, let ![alt text](https://github.com/nerkulec/MKRW_project1/blob/kuba/images/tau.png)
+denote a set of user, movie pairs (u, m) - with ratings present in a test set – then the existing rating is given by **_T_**[u, m]. Assume that your algorithm after training on **_Z_** computes **_Z'_**, a matrix containing elements **_Z'_**[u, m] for (u, m) ∈ ![alt text](https://github.com/nerkulec/MKRW_project1/blob/kuba/images/tau.png). Then the quality is computed as root-mean square error:
 
-![alt text]()
+![alt text](https://github.com/nerkulec/MKRW_project1/blob/kuba/images/rmse.png)
