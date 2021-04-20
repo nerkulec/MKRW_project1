@@ -68,7 +68,17 @@ def nmf(matrix, r, max_iter=1000):
 
 
 # %%
-def svd_1(Z, r):
+def svd_1(Z: np.ndarray, r: int = 7) -> np.ndarray:
+    """
+    Function performs low rank approximation of utility matrix Z via truncated SVD.
+
+    :param Z: Utility matrix Z (users x movies)
+    :type Z: numpy.ndarray
+    :param r: Number of components in truncated SVD (ranks)
+    :type r: int
+    :return: Rank r matrix, obtained from the truncated SVD being LR approximation of Z.
+    :rtype: numpy.ndarray
+    """
     svd = TruncatedSVD(n_components=r, random_state=42)
     svd.fit(Z)
     Sigma2 = np.diag(svd.singular_values_)
@@ -78,7 +88,34 @@ def svd_1(Z, r):
     Z_approximated = np.dot(W, H)
     return Z_approximated
 
-# %%
+
+def svd_2(Z: np.ndarray, r: int, Z_test: np.ndarray, n_iter: int = 100, update: int = 10) -> np.ndarray:
+    """Function performs iterative low rank approximation of utility matrix Z via truncated SVD.
+
+    :param Z: Train utility matrix Z (users x movies)
+    :type Z: numpy.ndarray
+    :param r: Number of components in truncated SVD (ranks)
+    :type r: int
+    :param Z_test: Test utility matrix Z (users x movies)
+    :type Z_test: numpy.ndarray
+    :param n_iter: Number of iterations, defaults to 100
+    :type n_iter: int, optional
+    :param update: Print RMSE of approximation every x iterations, defaults to 10
+    :type update: int, optional
+    :return: Rank r matrix, obtained from the iterative truncated SVD being LR approximation of Z.
+    :rtype: numpy.ndarray
+    """
+    Z = fill_zeros(Z)
+    Zr = fill_zeros(Z)
+
+# with tqdm(total=100) as pbar:
+    for i in range(n_iter):
+        Z_approximated = svd_1(Zr, r)
+        Zr = (Z == 0).astype(float) * Z_approximated + Z
+        if i % update == 0:
+            print(f'RMSE after {i}th iteration equals = {RMSE(Zr, Z_test)}')
+        # pbar.update(10)
+    return Zr
 
 
 def fill_zeros(matrix):
@@ -111,18 +148,18 @@ def fill_mean_users(matrix):
 # %%
 # Experiment 1
 filled_train_ratings = fill_mean_users(train_ratings)
-filled_test_ratings = fill_mean_users(test_ratings)
+
 if args.alg == 'NMF':
     approximation = nmf(filled_ratings, 6, max_iter=1000)
 elif args.alg == 'SVD1':
     approximation = svd_1(filled_ratings, 6)
 elif args.alg == 'SVD2':
-    pass
+    approximation = svd_2(Z=train_ratings, r=7,
+                          Z_test=test_ratings, n_iter=100, update=10)
 elif args.alg == 'SGD':
     pass
 
-rmse_train = RMSE(approximation, filled_train_ratings)
-rmse_test = RMSE(approximation, filled_test_ratings)
+rmse_test = RMSE(approximation, test_ratings)
 
 with open(args.result, 'a') as f:
     f.write(str(rmse_test))
