@@ -110,11 +110,6 @@ def fill_mean_users(matrix):
 
 # %%
 # Experiment 1
-<<<<<<< HEAD
-filled_ratings = fill_mean_users(train_ratings)
-approximation = nmf(filled_ratings, 6, max_iter = 1000)
-print(RMSE(approximation, test_ratings))
-=======
 filled_train_ratings = fill_mean_users(train_ratings)
 filled_test_ratings = fill_mean_users(test_ratings)
 if args.alg == 'NMF':
@@ -125,7 +120,6 @@ elif args.alg == 'SVD2':
     pass
 elif args.alg == 'SGD':
     pass
->>>>>>> 9206f6106c04c64223e9c022c3429dbacf5c3d3b
 
 rmse_train = RMSE(approximation, filled_train_ratings)
 rmse_test = RMSE(approximation, filled_test_ratings)
