@@ -7,6 +7,7 @@ from tqdm import tqdm, trange
 
 train_ratings, test_ratings = None, None
 
+
 def get_matrices(train_path, test_path):
     train = pd.read_csv(train_path)
     test = pd.read_csv(test_path)
@@ -20,13 +21,13 @@ def get_matrices(train_path, test_path):
     users = list(users)
     movies = list(movies)
     user_ids = dict((index, i) for (i, index) in enumerate(users))
-    movie_ids = dict((index, i) for (i, index) in enumerate(movies)) 
-    
+    movie_ids = dict((index, i) for (i, index) in enumerate(movies))
+
     train_ratings = np.zeros((len(users), len(movies)))
     train_ratings[:] = np.nan
     for row in train.itertuples():
-        train_ratings[user_ids[row.userId], movie_ids[row.movieId]] = row.rating
-
+        train_ratings[user_ids[row.userId],
+                      movie_ids[row.movieId]] = row.rating
 
     test_ratings = np.zeros((len(users), len(movies)))
     test_ratings[:] = np.nan
@@ -35,6 +36,8 @@ def get_matrices(train_path, test_path):
     return train_ratings, test_ratings
 
 # %%
+
+
 def RMSE(prediction, truth):
     not_nans = np.argwhere(~np.isnan(truth))
     s = 0
@@ -87,33 +90,45 @@ def svd_1(Z: np.ndarray, r: int = 7) -> np.ndarray:
     return Z_approximated
 
 
-def svd_2(Z: np.ndarray, r: int, Z_test: np.ndarray, n_iter: int = 100, update: int = 10) -> np.ndarray:
+def svd_2(
+        Z_filled: np.ndarray, Z: np.ndarray, Z_test: np.ndarray, r: int, n_iter: int = 100,
+        epsilon: float = 0.00001, verbose: bool = True) -> np.ndarray:
     """Function performs iterative low rank approximation of utility matrix Z via truncated SVD.
 
-    :param Z: Train utility matrix Z (users x movies)
+    :param Z_filled: Filled Train utility matrix Z (users x movies)
+    :type Z_filled: numpy.ndarray
+    :param Z: Train utility matrix Z (users x movies) before filling
     :type Z: numpy.ndarray
+    :param Z_test: Test utility matrix Z (users x movies) to control algorithm convergence.
+    :type Z_test: numpy.ndarray
     :param r: Number of components in truncated SVD (ranks)
     :type r: int
-    :param Z_test: Test utility matrix Z (users x movies)
-    :type Z_test: numpy.ndarray
     :param n_iter: Number of iterations, defaults to 100
     :type n_iter: int, optional
-    :param update: Print RMSE of approximation every x iterations, defaults to 10
-    :type update: int, optional
+    :param epsilon: Tolerance checking if algorithm is converging
+    :type epsilon: float, optional
     :return: Rank r matrix, obtained from the iterative truncated SVD being LR approximation of Z.
     :rtype: numpy.ndarray
     """
-    Z = fill_zeros(Z)
-    Zr = fill_zeros(Z)
-
-# with tqdm(total=100) as pbar:
-    for i in range(n_iter):
+    Z_0 = np.nan_to_num(Z, nan=0.0)
+    Zr = Z_filled
+    i = 0
+    rmse_prev = np.Inf
+    condition = True
+    while condition:
         Z_approximated = svd_1(Zr, r)
-        Zr = (Z == 0).astype(float) * Z_approximated + Z
-        if i % update == 0:
-            print(f'RMSE after {i}th iteration equals = {RMSE(Zr, Z_test)}')
-        # pbar.update(10)
-    return Zr
+        Zr = (Z_0 == 0).astype(float) * Z_approximated + Z_0
+        rmse = RMSE(Zr, Z_test)
+        condition = (i < n_iter) and ((rmse_prev-rmse) > epsilon)
+        if condition:
+            Z_best = Zr
+        if verbose:
+            print(f'Training RMSE after {i+1}th iteration equals = {rmse}')
+        i += 1
+        rmse_prev = rmse
+    print(
+        f"Returning last, best approximation with RMSE = {RMSE(Z_best, Z_test)}")
+    return Z_best
 
 
 def sgd(Z: np.ndarray, r: int = 15, max_iter: int = 200, alpha: float = 0.0008,
@@ -135,15 +150,16 @@ def sgd(Z: np.ndarray, r: int = 15, max_iter: int = 200, alpha: float = 0.0008,
     n, d = Z.shape
     W = np.random.normal(size=(n, r))
     H = np.random.normal(size=(r, d))
-    
+
     not_nans = np.argwhere(~np.isnan(Z))
-    
+
     def loss(W, H, truth):
         s = 0
         for (user_id, movie_id) in not_nans:
-            w_i = W[user_id,:]
-            h_j = H[:,movie_id]
-            s += (w_i.T@h_j-truth[user_id, movie_id])**2 + lambd*((w_i**2).sum()+(h_j**2).sum())
+            w_i = W[user_id, :]
+            h_j = H[:, movie_id]
+            s += (w_i.T@h_j-truth[user_id, movie_id])**2 + \
+                lambd*((w_i**2).sum()+(h_j**2).sum())
         return s
 
     def grad(W, H, truth, start):
@@ -151,13 +167,13 @@ def sgd(Z: np.ndarray, r: int = 15, max_iter: int = 200, alpha: float = 0.0008,
         DH = np.zeros(shape=(r, d))
         end = min(start+batch_size, len(not_nans))
         for (user_id, movie_id) in not_nans[start:end]:
-            w_i = W[user_id,:]
-            h_j = H[:,movie_id]
+            w_i = W[user_id, :]
+            h_j = H[:, movie_id]
             t_i_j = truth[user_id, movie_id]
             DW[user_id, :]  += 2*(w_i.T @ h_j-t_i_j)*h_j + lambd*2*w_i
             DH[:, movie_id] += 2*(h_j.T @ w_i-t_i_j)*w_i + lambd*2*h_j
         return DW, DH
-    
+
     with tqdm(max_iter) as pbar:
         for i in range(max_iter):
             for start in range(0, len(not_nans), batch_size):
@@ -167,11 +183,10 @@ def sgd(Z: np.ndarray, r: int = 15, max_iter: int = 200, alpha: float = 0.0008,
             pbar.update()
             if test_ratings is not None:
                 pbar.set_postfix(rmse=RMSE(np.dot(W, H), test_ratings))
-        
-    
+
     Z_approximated = np.dot(W, H)
     return Z_approximated
-  
+
 
 def fill_zeros(Z):
     """
@@ -247,6 +262,7 @@ def fill_mean_weighted(Z, alpha):
     Z_mean_movies = fill_mean_movies(Z)
     return alpha*Z_mean_movies+(1-alpha)*Z_mean_users
 
+
 best_alpha = 0.23
 
 if __name__ == '__main__':
@@ -265,10 +281,10 @@ if __name__ == '__main__':
     parser.add_argument(
         '-r', '--result', type=str, metavar='', required=True, help='Path where root-mean square error (RMSE) is to be saved.')
     args = parser.parse_args()
-    
+
     # global train_ratings, test_ratings
     train_ratings, test_ratings = get_matrices(args.train, args.test)
-    
+
     # filled_ratings = fill_mean_users(train_ratings)
     filled_ratings = fill_mean_weighted(train_ratings, best_alpha)
 
@@ -277,8 +293,9 @@ if __name__ == '__main__':
     elif args.alg == 'SVD1':
         approximation = svd_1(filled_ratings, 6)
     elif args.alg == 'SVD2':
-        approximation = svd_2(Z=filled_ratings, r=7,
-                            Z_test=test_ratings, n_iter=100, update=10)
+        approximation = svd_2(
+            Z_filled=filled_ratings, Z=train_ratings, Z_test=test_ratings,
+            r=7, n_iter=100, epsilon=0.0)
     elif args.alg == 'SGD':
         approximation = sgd(train_ratings)
 
