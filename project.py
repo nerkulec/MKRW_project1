@@ -116,8 +116,8 @@ def svd_2(Z: np.ndarray, r: int, Z_test: np.ndarray, n_iter: int = 100, update: 
     return Zr
 
 
-def sgd(Z: np.ndarray, r: int = 7, max_iter: int = 100, alpha: float = 0.0008,
-        lambd: float = 0.01, batch_size: int = 64) -> np.ndarray:
+def sgd(Z: np.ndarray, r: int = 15, max_iter: int = 200, alpha: float = 0.0008,
+        lambd: float = 0.001, batch_size: int = 64) -> np.ndarray:
     """
     Function performs low rank approximation of utility matrix Z via SGD.
 
@@ -154,8 +154,8 @@ def sgd(Z: np.ndarray, r: int = 7, max_iter: int = 100, alpha: float = 0.0008,
             w_i = W[user_id,:]
             h_j = H[:,movie_id]
             t_i_j = truth[user_id, movie_id]
-            DW[user_id, :] += 2*(w_i.T@h_j-t_i_j)*h_j + lambd*2*w_i
-            DH[:, movie_id] += 2*(h_j.T@w_i-t_i_j)*w_i + lambd*2*h_j
+            DW[user_id, :]  += 2*(w_i.T @ h_j-t_i_j)*h_j + lambd*2*w_i
+            DH[:, movie_id] += 2*(h_j.T @ w_i-t_i_j)*w_i + lambd*2*h_j
         return DW, DH
     
     with tqdm(max_iter) as pbar:
