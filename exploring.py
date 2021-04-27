@@ -35,12 +35,12 @@ algs_dict = dict(
     svd_2=svd_2,
     sgd=sgd
 )
-fillers = ['fill_zeros', 'fill_mean_global', 'fill_mean_movies', 'fill_mean_users', 'fill_mean_weighted'][0:1]
-algs = ['nmf', 'svd_1', 'svd_2'][0:1]
-rs = [1, 2, 4, 8, 16, 32][0:1]
+fillers = ['fill_zeros', 'fill_mean_global', 'fill_mean_movies', 'fill_mean_users', 'fill_mean_weighted']
+algs = ['nmf', 'svd_1', 'svd_2']
+rs = [1, 2, 4, 8, 16, 32]
 results = np.zeros(shape=(len(fillers), len(algs), len(rs)))
-alphas = [0.004, 0.01, 0.04, 0.1][0:1]
-lambdas = [0.001, 0.004, 0.01][0:1]
+alphas = [0.004, 0.01, 0.04, 0.1]
+lambdas = [0.001, 0.004, 0.01]
 results_sgd = np.zeros(shape=(len(fillers), len(rs), len(alphas), len(lambdas)))
 
 from itertools import product
