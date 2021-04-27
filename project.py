@@ -131,8 +131,8 @@ def svd_2(
     return Z_best
 
 
-def sgd(Z: np.ndarray, r: int = 15, max_iter: int = 200, alpha: float = 0.0008,
-        lambd: float = 0.001, batch_size: int = 64) -> np.ndarray:
+def sgd(Z: np.ndarray, r: int = 8, max_iter: int = 200, alpha: float = 0.05,
+        lambd: float = 0.01, batch_size: int = 64) -> np.ndarray:
     """
     Function performs low rank approximation of utility matrix Z via SGD.
 
@@ -152,6 +152,7 @@ def sgd(Z: np.ndarray, r: int = 15, max_iter: int = 200, alpha: float = 0.0008,
     H = np.random.normal(size=(r, d))
 
     not_nans = np.argwhere(~np.isnan(Z))
+    np.random.shuffle(not_nans)
 
     def loss(W, H, truth):
         s = 0
@@ -172,10 +173,13 @@ def sgd(Z: np.ndarray, r: int = 15, max_iter: int = 200, alpha: float = 0.0008,
             t_i_j = truth[user_id, movie_id]
             DW[user_id, :]  += 2*(w_i.T @ h_j-t_i_j)*h_j + lambd*2*w_i
             DH[:, movie_id] += 2*(h_j.T @ w_i-t_i_j)*w_i + lambd*2*h_j
-        return DW, DH
+        f = 1/(end-start)
+        return DW*f, DH*f
 
     with tqdm(max_iter) as pbar:
         for i in range(max_iter):
+            if (i+1)%(max_iter//4) == 0:
+                alpha /= 2
             for start in range(0, len(not_nans), batch_size):
                 DW, DH = grad(W, H, Z, start)
                 W = W - alpha*DW
@@ -247,7 +251,7 @@ def fill_mean_users(Z):
     return Z_copy
 
 
-def fill_mean_weighted(Z, alpha):
+def fill_mean_weighted(Z, alpha=0.23):
     """
     Fills missing values in Z with weighted mean between users-mean and movies-mean
 
