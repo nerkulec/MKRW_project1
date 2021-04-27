@@ -247,19 +247,6 @@ def fill_mean_weighted(Z, alpha):
     Z_mean_movies = fill_mean_movies(Z)
     return alpha*Z_mean_movies+(1-alpha)*Z_mean_users
 
-# # %%
-# import matplotlib.pyplot as plt
-# rmses = []
-# xs = np.linspace(0, 1, 101)
-# for x in xs:
-#     rmse = RMSE(fill_mean_weighted(train_ratings, x), test_ratings)
-#     print(f'{x}: {rmse}')
-#     rmses.append(rmse)
-# plt.title('RMSE vs mixing coefficient')
-# plt.ylabel('RMSE')
-# plt.xlabel('$\\alpha$')
-# plt.plot(xs, rmses)
-# plt.savefig('alpha_tradeoff.png')
 best_alpha = 0.23
 
 if __name__ == '__main__':
