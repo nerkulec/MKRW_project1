@@ -5,51 +5,36 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm, trange
 
-# %%
-import argparse
-parser = argparse.ArgumentParser(
-    description='Recommender system using NMF, SVD or Stochastic Gradient Descent.')
-parser.add_argument(
-    '-tr', '--train', type=str, metavar='',
-    required=True, help='Path to trainfile with movie ratings.')
-parser.add_argument(
-    '-ts', '--test', type=str, metavar='',
-    required=True, help='Path to testfile with movie ratings.')
-parser.add_argument(
-    '-a', '--alg', type=str, metavar='', choices=['SVD1', 'SVD2', 'NMF', 'SGD'],
-    required=True, help='Chosen algorithm for Recommender system (NMF, SVD1, SVD2, SGD)')
-parser.add_argument(
-    '-r', '--result', type=str, metavar='', required=True, help='Path where root-mean square error (RMSE) is to be saved.')
-args = parser.parse_args()
+train_ratings, test_ratings = None, None
+
+def get_matrices(train_path, test_path):
+    train = pd.read_csv(train_path)
+    test = pd.read_csv(test_path)
+
+    users = set(train.userId)
+    train_movies = set(train.movieId)
+    test_movies = set(test.movieId)
+    movies = train_movies.union(test_movies)
+    # movies_not_in_test = list(movies.difference(test_movies))
+    # movies_not_in_train = list(movies.difference(train_movies))
+    users = list(users)
+    movies = list(movies)
+    user_ids = dict((index, i) for (i, index) in enumerate(users))
+    movie_ids = dict((index, i) for (i, index) in enumerate(movies)) 
+    
+    train_ratings = np.zeros((len(users), len(movies)))
+    train_ratings[:] = np.nan
+    for row in train.itertuples():
+        train_ratings[user_ids[row.userId], movie_ids[row.movieId]] = row.rating
+
+
+    test_ratings = np.zeros((len(users), len(movies)))
+    test_ratings[:] = np.nan
+    for row in test.itertuples():
+        test_ratings[user_ids[row.userId], movie_ids[row.movieId]] = row.rating
+    return train_ratings, test_ratings
 
 # %%
-train = pd.read_csv(filepath_or_buffer=args.train)
-test = pd.read_csv(filepath_or_buffer=args.test)
-
-users = set(train.userId)
-train_movies = set(train.movieId)
-test_movies = set(test.movieId)
-movies = train_movies.union(test_movies)
-# movies_not_in_test = list(movies.difference(test_movies))
-# movies_not_in_train = list(movies.difference(train_movies))
-users = list(users)
-movies = list(movies)
-user_ids = dict((index, i) for (i, index) in enumerate(users))
-movie_ids = dict((index, i) for (i, index) in enumerate(movies))
-# %%
-train_ratings = np.zeros((len(users), len(movies)))
-train_ratings[:] = np.nan
-for row in train.itertuples():
-    train_ratings[user_ids[row.userId], movie_ids[row.movieId]] = row.rating
-
-
-test_ratings = np.zeros((len(users), len(movies)))
-test_ratings[:] = np.nan
-for row in test.itertuples():
-    test_ratings[user_ids[row.userId], movie_ids[row.movieId]] = row.rating
-# %%
-
-
 def RMSE(prediction, truth):
     not_nans = np.argwhere(~np.isnan(truth))
     s = 0
@@ -131,7 +116,8 @@ def svd_2(Z: np.ndarray, r: int, Z_test: np.ndarray, n_iter: int = 100, update: 
     return Zr
 
 
-def sgd(Z: np.ndarray, r: int = 7, max_iter: int = 200, alpha: float = 0.0003, lambd: float = 0.01) -> np.ndarray:
+def sgd(Z: np.ndarray, r: int = 7, max_iter: int = 100, alpha: float = 0.0008,
+        lambd: float = 0.01, batch_size: int = 64) -> np.ndarray:
     """
     Function performs low rank approximation of utility matrix Z via SGD.
 
@@ -141,6 +127,8 @@ def sgd(Z: np.ndarray, r: int = 7, max_iter: int = 200, alpha: float = 0.0003, l
     :type r: int
     :param max_iter: Maximum number of SGD algorithm iterations
     :type max_iter: int
+    :param batch_size: Batch size for computing gradients
+    :type batch_size: int
     :return: Rank r matrix - an approximation of Z.
     :rtype: numpy.ndarray
     """
@@ -158,21 +146,28 @@ def sgd(Z: np.ndarray, r: int = 7, max_iter: int = 200, alpha: float = 0.0003, l
             s += (w_i.T@h_j-truth[user_id, movie_id])**2 + lambd*((w_i**2).sum()+(h_j**2).sum())
         return s
 
-    def grad(W, H, truth):
+    def grad(W, H, truth, start):
         DW = np.zeros(shape=(n, r))
         DH = np.zeros(shape=(r, d))
-        for (user_id, movie_id) in not_nans:
+        end = min(start+batch_size, len(not_nans))
+        for (user_id, movie_id) in not_nans[start:end]:
             w_i = W[user_id,:]
             h_j = H[:,movie_id]
             t_i_j = truth[user_id, movie_id]
             DW[user_id, :] += 2*(w_i.T@h_j-t_i_j)*h_j + lambd*2*w_i
             DH[:, movie_id] += 2*(h_j.T@w_i-t_i_j)*w_i + lambd*2*h_j
         return DW, DH
+    
+    with tqdm(max_iter) as pbar:
+        for i in range(max_iter):
+            for start in range(0, len(not_nans), batch_size):
+                DW, DH = grad(W, H, Z, start)
+                W = W - alpha*DW
+                H = H - alpha*DH
+            pbar.update()
+            if test_ratings is not None:
+                pbar.set_postfix(rmse=RMSE(np.dot(W, H), test_ratings))
         
-    for i in trange(max_iter):
-        DW, DH = grad(W, H, Z)
-        W = W - alpha*DW
-        H = H - alpha*DH
     
     Z_approximated = np.dot(W, H)
     return Z_approximated
@@ -237,21 +232,70 @@ def fill_mean_users(Z):
     return Z_copy
 
 
-# %%
-# Experiment 1
-filled_ratings = fill_mean_users(train_ratings)
+def fill_mean_weighted(Z, alpha):
+    """
+    Fills missing values in Z with weighted mean between users-mean and movies-mean
 
-if args.alg == 'NMF':
-    approximation = nmf(filled_ratings, 6, max_iter=1000)
-elif args.alg == 'SVD1':
-    approximation = svd_1(filled_ratings, 6)
-elif args.alg == 'SVD2':
-    approximation = svd_2(Z=filled_ratings, r=7,
-                          Z_test=test_ratings, n_iter=100, update=10)
-elif args.alg == 'SGD':
-    approximation = sgd(train_ratings)
+    :param Z: Utility matrix Z (users x movies)
+    :type Z: numpy.ndarray
+    :param alpha: mixing factor
+    :type alpha: float
+    :return: matrix Z with NaNs replaced with weighted means
+    :rtype: numpy.ndarray
+    """
+    Z_mean_users = fill_mean_users(Z)
+    Z_mean_movies = fill_mean_movies(Z)
+    return alpha*Z_mean_movies+(1-alpha)*Z_mean_users
 
-rmse_test = RMSE(approximation, test_ratings)
+# # %%
+# import matplotlib.pyplot as plt
+# rmses = []
+# xs = np.linspace(0, 1, 101)
+# for x in xs:
+#     rmse = RMSE(fill_mean_weighted(train_ratings, x), test_ratings)
+#     print(f'{x}: {rmse}')
+#     rmses.append(rmse)
+# plt.title('RMSE vs mixing coefficient')
+# plt.ylabel('RMSE')
+# plt.xlabel('$\\alpha$')
+# plt.plot(xs, rmses)
+# plt.savefig('alpha_tradeoff.png')
+best_alpha = 0.23
 
-with open(args.result, 'a') as f:
-    f.write(f'{args.alg}: {rmse_test:.2f}\n')
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(
+        description='Recommender system using NMF, SVD or Stochastic Gradient Descent.')
+    parser.add_argument(
+        '-tr', '--train', type=str, metavar='',
+        required=True, help='Path to trainfile with movie ratings.')
+    parser.add_argument(
+        '-ts', '--test', type=str, metavar='',
+        required=True, help='Path to testfile with movie ratings.')
+    parser.add_argument(
+        '-a', '--alg', type=str, metavar='', choices=['SVD1', 'SVD2', 'NMF', 'SGD'],
+        required=True, help='Chosen algorithm for Recommender system (NMF, SVD1, SVD2, SGD)')
+    parser.add_argument(
+        '-r', '--result', type=str, metavar='', required=True, help='Path where root-mean square error (RMSE) is to be saved.')
+    args = parser.parse_args()
+    
+    # global train_ratings, test_ratings
+    train_ratings, test_ratings = get_matrices(args.train, args.test)
+    
+    # filled_ratings = fill_mean_users(train_ratings)
+    filled_ratings = fill_mean_weighted(train_ratings, best_alpha)
+
+    if args.alg == 'NMF':
+        approximation = nmf(filled_ratings, 6, max_iter=1000)
+    elif args.alg == 'SVD1':
+        approximation = svd_1(filled_ratings, 6)
+    elif args.alg == 'SVD2':
+        approximation = svd_2(Z=filled_ratings, r=7,
+                            Z_test=test_ratings, n_iter=100, update=10)
+    elif args.alg == 'SGD':
+        approximation = sgd(train_ratings)
+
+    rmse_test = RMSE(approximation, test_ratings)
+
+    with open(args.result, 'a') as f:
+        f.write(f'{args.alg}: {rmse_test:.2f}\n')
