@@ -4,6 +4,7 @@ from sklearn.decomposition import NMF
 import numpy as np
 import pandas as pd
 from tqdm import tqdm, trange
+from numba import jit
 
 train_ratings, test_ratings = None, None
 
@@ -163,11 +164,14 @@ def sgd(Z: np.ndarray, r: int = 8, max_iter: int = 200, alpha: float = 0.05,
                 lambd*((w_i**2).sum()+(h_j**2).sum())
         return s
 
+    @jit()
     def grad(W, H, truth, start):
         DW = np.zeros(shape=(n, r))
         DH = np.zeros(shape=(r, d))
         end = min(start+batch_size, len(not_nans))
-        for (user_id, movie_id) in not_nans[start:end]:
+        # for (user_id, movie_id) in not_nans[start:end]:
+        for i in range(start, end):
+            user_id, movie_id = not_nans[i]
             w_i = W[user_id, :]
             h_j = H[:, movie_id]
             t_i_j = truth[user_id, movie_id]
