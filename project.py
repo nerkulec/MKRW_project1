@@ -4,7 +4,7 @@ from sklearn.decomposition import NMF
 import numpy as np
 import pandas as pd
 from tqdm import tqdm, trange
-from numba import jit
+from numba import jit, njit
 
 train_ratings, test_ratings = None, None
 
@@ -131,7 +131,6 @@ def svd_2(
         f"Returning last, best approximation with RMSE = {RMSE(Z_best, Z_test)}")
     return Z_best
 
-
 def sgd(Z: np.ndarray, r: int = 8, max_iter: int = 200, alpha: float = 0.05,
         lambd: float = 0.01, batch_size: int = 64) -> np.ndarray:
     """
@@ -150,10 +149,15 @@ def sgd(Z: np.ndarray, r: int = 8, max_iter: int = 200, alpha: float = 0.05,
     """
     n, d = Z.shape
     W = np.random.normal(size=(n, r))
-    H = np.random.normal(size=(r, d))
+    H = np.random.normal(size=(d, r))
 
     not_nans = np.argwhere(~np.isnan(Z))
     np.random.shuffle(not_nans)
+    
+    # U, M = np.zeros((len(not_nans), r)), np.zeros((len(not_nans), r))
+    # for i, (user_id, movie_id) in enumerate(not_nans):
+    #     U[i, :] = W[user_id, :]
+    #     H[i, :] = H[:, ]
 
     def loss(W, H, truth):
         s = 0
@@ -164,20 +168,20 @@ def sgd(Z: np.ndarray, r: int = 8, max_iter: int = 200, alpha: float = 0.05,
                 lambd*((w_i**2).sum()+(h_j**2).sum())
         return s
 
-    @jit()
+    @njit()
     def grad(W, H, truth, start):
         DW = np.zeros(shape=(n, r))
-        DH = np.zeros(shape=(r, d))
+        DH = np.zeros(shape=(d, r))
         end = min(start+batch_size, len(not_nans))
-        # for (user_id, movie_id) in not_nans[start:end]:
+        
         for i in range(start, end):
             user_id, movie_id = not_nans[i]
-            w_i = W[user_id, :]
-            h_j = H[:, movie_id]
+            w_i = W[user_id]
+            h_j = H[movie_id]
             t_i_j = truth[user_id, movie_id]
-            DW[user_id, :]  += 2*(w_i.T @ h_j-t_i_j)*h_j + lambd*2*w_i
-            DH[:, movie_id] += 2*(h_j.T @ w_i-t_i_j)*w_i + lambd*2*h_j
-        f = 1/(end-start)
+            DW[user_id]  = DW[user_id]  + (w_i.T @ h_j - t_i_j)*h_j + lambd*w_i
+            DH[movie_id] = DH[movie_id] + (h_j.T @ w_i - t_i_j)*w_i + lambd*h_j
+        f = 2/(end-start)
         return DW*f, DH*f
 
     with tqdm(max_iter) as pbar:
@@ -190,9 +194,9 @@ def sgd(Z: np.ndarray, r: int = 8, max_iter: int = 200, alpha: float = 0.05,
                 H = H - alpha*DH
             pbar.update()
             if test_ratings is not None:
-                pbar.set_postfix(rmse=RMSE(np.dot(W, H), test_ratings))
+                pbar.set_postfix(rmse=RMSE(np.dot(W, H.T), test_ratings))
 
-    Z_approximated = np.dot(W, H)
+    Z_approximated = np.dot(W, H.T)
     return Z_approximated
 
 
