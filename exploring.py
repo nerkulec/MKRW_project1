@@ -3,8 +3,9 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm, trange
 from itertools import product
+from numba import njit
 
-from project import RMSE, nmf, svd_1, svd_2, sgd, get_matrices,\
+from project import RMSE, nmf, svd_1, svd_2, get_matrices,\
     fill_mean_global, fill_mean_movies, fill_mean_users,\
     fill_mean_weighted, fill_zeros
 train_ratings, test_ratings = get_matrices('train_ratings.csv', 'test_ratings.csv')

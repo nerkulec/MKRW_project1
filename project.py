@@ -131,8 +131,8 @@ def svd_2(
         f"Returning last, best approximation with RMSE = {RMSE(Z_best, Z_test)}")
     return Z_best
 
-def sgd(Z: np.ndarray, r: int = 8, max_iter: int = 200, alpha: float = 0.05,
-        lambd: float = 0.01, batch_size: int = 8192) -> np.ndarray:
+def sgd(Z: np.ndarray, r: int = 2, max_iter: int = 200, alpha: float = 0.6,
+        lambd: float = 0.01, batch_size: int = 512) -> np.ndarray:
     """
     Function performs low rank approximation of utility matrix Z via SGD.
 
@@ -153,11 +153,6 @@ def sgd(Z: np.ndarray, r: int = 8, max_iter: int = 200, alpha: float = 0.05,
 
     not_nans = np.argwhere(~np.isnan(Z))
     np.random.shuffle(not_nans)
-    
-    # U, M = np.zeros((len(not_nans), r)), np.zeros((len(not_nans), r))
-    # for i, (user_id, movie_id) in enumerate(not_nans):
-    #     U[i, :] = W[user_id, :]
-    #     H[i, :] = H[:, ]
 
     def loss(W, H, truth):
         s = 0
@@ -171,8 +166,6 @@ def sgd(Z: np.ndarray, r: int = 8, max_iter: int = 200, alpha: float = 0.05,
     @njit(fastmath=True)
     def grad(W, H, truth, alpha, batch_size):
         for start in range(0, len(not_nans), batch_size):
-            # DW = np.zeros(shape=(n, r))
-            # DH = np.zeros(shape=(d, r))
             end = min(start+batch_size, len(not_nans))
             
             f = alpha*2/(end-start)
@@ -183,17 +176,13 @@ def sgd(Z: np.ndarray, r: int = 8, max_iter: int = 200, alpha: float = 0.05,
                 t_i_j = truth[user_id, movie_id]
                 W[user_id]  -= f*((w_i.T @ h_j - t_i_j)*h_j + lambd*w_i)
                 H[movie_id] -= f*((h_j.T @ w_i - t_i_j)*w_i + lambd*h_j)
-        # return W, H
 
     with tqdm(max_iter) as pbar:
         for i in range(max_iter):
             if (i+1)%(max_iter//4) == 0:
-                alpha /= 2
-            # W, H = 
+                # alpha *= 0.7
+                np.random.shuffle(not_nans)
             grad(W, H, Z, alpha, batch_size)
-                # W, H = grad(W, H, Z, start, alpha)
-                # W = W - alpha*DW
-                # H = H - alpha*DH
             pbar.update()
             if test_ratings is not None:
                 pbar.set_postfix(rmse=RMSE(np.dot(W, H.T), test_ratings))
