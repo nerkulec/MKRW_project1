@@ -132,7 +132,7 @@ def svd_2(
     return Z_best
 
 def sgd(Z: np.ndarray, r: int = 8, max_iter: int = 200, alpha: float = 0.05,
-        lambd: float = 0.01, batch_size: int = 64) -> np.ndarray:
+        lambd: float = 0.01, batch_size: int = 8192) -> np.ndarray:
     """
     Function performs low rank approximation of utility matrix Z via SGD.
 
@@ -168,30 +168,32 @@ def sgd(Z: np.ndarray, r: int = 8, max_iter: int = 200, alpha: float = 0.05,
                 lambd*((w_i**2).sum()+(h_j**2).sum())
         return s
 
-    @njit()
-    def grad(W, H, truth, start):
-        DW = np.zeros(shape=(n, r))
-        DH = np.zeros(shape=(d, r))
-        end = min(start+batch_size, len(not_nans))
-        
-        for i in range(start, end):
-            user_id, movie_id = not_nans[i]
-            w_i = W[user_id]
-            h_j = H[movie_id]
-            t_i_j = truth[user_id, movie_id]
-            DW[user_id]  = DW[user_id]  + (w_i.T @ h_j - t_i_j)*h_j + lambd*w_i
-            DH[movie_id] = DH[movie_id] + (h_j.T @ w_i - t_i_j)*w_i + lambd*h_j
-        f = 2/(end-start)
-        return DW*f, DH*f
+    @njit(fastmath=True)
+    def grad(W, H, truth, alpha, batch_size):
+        for start in range(0, len(not_nans), batch_size):
+            # DW = np.zeros(shape=(n, r))
+            # DH = np.zeros(shape=(d, r))
+            end = min(start+batch_size, len(not_nans))
+            
+            f = alpha*2/(end-start)
+            for i in range(start, end):
+                user_id, movie_id = not_nans[i]
+                w_i = W[user_id]
+                h_j = H[movie_id]
+                t_i_j = truth[user_id, movie_id]
+                W[user_id]  -= f*((w_i.T @ h_j - t_i_j)*h_j + lambd*w_i)
+                H[movie_id] -= f*((h_j.T @ w_i - t_i_j)*w_i + lambd*h_j)
+        # return W, H
 
     with tqdm(max_iter) as pbar:
         for i in range(max_iter):
             if (i+1)%(max_iter//4) == 0:
                 alpha /= 2
-            for start in range(0, len(not_nans), batch_size):
-                DW, DH = grad(W, H, Z, start)
-                W = W - alpha*DW
-                H = H - alpha*DH
+            # W, H = 
+            grad(W, H, Z, alpha, batch_size)
+                # W, H = grad(W, H, Z, start, alpha)
+                # W = W - alpha*DW
+                # H = H - alpha*DH
             pbar.update()
             if test_ratings is not None:
                 pbar.set_postfix(rmse=RMSE(np.dot(W, H.T), test_ratings))
