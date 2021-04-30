@@ -105,9 +105,13 @@ $$Z^{(n+1)} = SVD_{r} \left[ \Big\{ \begin{array}{ll} Z & \textrm{when $z_{ij} >
 Z^{(n)}& \textrm{elsewhere }
 \end{array} \right]$$
 
-Note that if for some <img src="https://render.githubusercontent.com/render/math?math=n_0"> we have <img src="https://render.githubusercontent.com/render/math?math=Z^{(n_0)}"> fit the data <img src="https://render.githubusercontent.com/render/math?math=Z"> exactly, then <img src="https://render.githubusercontent.com/render/math?math=Z^{(n_0 + 1)} = Z^{(n_0)}">, i.e., <img src="https://render.githubusercontent.com/render/math?math=Z^{(n_0)}">would be a fixed point of the algorithm. Though theoretically the algorithm is not proved to converge, it does so often in practice.
+Note that if for some <img src="https://render.githubusercontent.com/render/math?math=n_0"> we have <img src="https://render.githubusercontent.com/render/math?math=Z^{(n_0)}"> fit the data <img src="https://render.githubusercontent.com/render/math?math=Z"> exactly, then <img src="https://render.githubusercontent.com/render/math?math=Z^{(n_0 + 1)} = Z^{(n_0)}">, i.e., <img src="https://render.githubusercontent.com/render/math?math=Z^{(n_0)}">would be a fixed point of the algorithm. Though theoretically the algorithm is not proved to converge, it does so often in practice. The control of the convergence of the algorithm is checked whether the RMSE error is not increases, i.e. Algorithms stops as soon as the RMSE starts to rise.
 
 - **Non-negative Matrix Factorization (NMF)**:
+
+Non-negative matrix approximation is a group of algorithms, where a matrix ${Z_{nxd}}$ is factorized into two matrices ${W_{nxr}}$ and ${H_{rxd}}$, with the property that all three matrices have no negative elements. Paramterer ${r}$ is chosen such that ${r << min(n, d)}$ and it approximates ${Z \approx WH}$ well. The error of approximation, as an objective function, which in this case is the Frobenius norm of the difference between ${Z}$ and ${WH}$ is minimized with an alternating minimization of ${W}$ and ${H}$. Objective function:
+
+$$\underset{W,H}{\operatorname{argmin}} \left\|Z - WH \right\|_{Fro}^2$$
 
 ### II part.
 
