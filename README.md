@@ -144,7 +144,40 @@ Parameters ${\alpha}$ and ${\lambda}$ are chosen and the training of the algorit
 
 ## Analyses:
 
-In this section we will describe the results of many silumations.
+In this section we will describe the results of simulations needed to evaluate the performane of our agorithms depending on the different set of parameter values as well as different approaches of imputing sparse utily matrix ${Z}$, that algorithms in the first part of the projects require to factorize the matrix.
+In our project we used #5 different approaches to fill the missing values on tha Z matrix, such as:
+
+- `fill_zeros` - fills missing values in Z with zeros.
+- `fill_mean_global` - fills missing values in Z with global mean of all ratings.
+- `fill_mean_movies` - fills missing values in Z with means per movie
+- `fill_mean_users` - fills missing values in Z with means per user
+- `fill_mean_weighted` - this methods combines the previous two approaches and fills missing values in Z with weighted mean between users-mean ${Z_{users}}$ and movies-mean ${Z_{movies}}$.
+  In this approach we needed to introduce new mixing coefficient ${\alpha \in (0, 1)}$ to control the weigthed average ratio between user-mean and movies-mean: ${ Z_{avg} = \alpha Z_{movies} + (1-\alpha) Z_{users} }$. 
+
+  On this plot below, we present the RMSE dependence on mixing coeffcient ${\alpha}$ spanned on horizontal axis in the range from 0 to 1, where ${\alpha = 0}$ would mean filling Z with `fill_mean_users` method and ${\alpha = 1}$ filling Z with `fill_mean_movies` method.
+  The optimal minimum value of RMSE is attained when ${\alpha = 0.23}$. We will use this parameters value in comparison of 3 factorization mathods: SVD1, SVD2, NMF.
+
+  ![](https://github.com/nerkulec/MKRW_project1/blob/main/alpha_tradeoff.png)
+
+
+The combined results of recommender system ratings' approximation based on the RMSE metric are presented on the plots below.
+
+![](https://github.com/nerkulec/MKRW_project1/blob/main/RMSE_plot.jpg)
+
+
+![](https://github.com/nerkulec/MKRW_project1/blob/main/rmse_plot2.png)
+
+
+Conclusions:
+
++ **${Z}$ matrix filling**: 
+ After quick analysis of the plot we can clearly see that the most important factor that plays significant role in each algorithms performance is the initialization, meaning the way we impute missing values. There are rather visibale drops of RMSE value lines as we go from `fill_zeros`, `fill_mean_movies`, `fill_mean_global`, `fill_mean_users` and the best optimal RMSE value is attained when we fill the ${Z}$ matrix with `fill_mean_weighted` method. 
+
++ **Optimal number of latent features ${r}$**: 
+ We can observe that NMF and SVD1 algorithms perform slightly better with the increase of ${r}$ parameter value, whereas performance of iterative SVD2 rather drops with the increase of  ${r}$. Yet, we can clearly see that the SVD2 outperforms two previous methods on the whole range of r values, i.e when ${r < 32}$ for each choice of filling method respectively. 
+
+Summing up the results, to get the best result we should use combination of **SVD2** algorithm and `fill_mean_weight` imputing method as its performance lines remains at the bottom of the RMSE graph. On the other hand we shall never apply `fill_zeros` method for none of the algorithms, it results in quite low performance. As per 'best' ${r}$ number of latent features for the above mention best combination of **SVD2** algo and filling method we shall pick ${r = 2}$, yet it is worth mentioning that for small ${r}$ values `fill_mean_global`, `fill_mean_users` perform quite satisfacotory as well.
+
 
 ## Launch:
 
